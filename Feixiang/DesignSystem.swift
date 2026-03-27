@@ -4,7 +4,7 @@ import SwiftUI
 // Sky blue is the hero color. All other colors are intentionally muted
 // so they support the scene without competing.
 extension Color {
-    static let skyBright   = Color(red: 0.28, green: 0.65, blue: 0.98)  // hero — unchanged
+    static let skyBright   = Color(red: 0.33, green: 0.83, blue: 0.99)  
     static let skyLight    = Color(red: 0.75, green: 0.91, blue: 1.00)
     static let skyDeep     = Color(red: 0.15, green: 0.48, blue: 0.88)
     static let gardenGreen = Color(red: 0.26, green: 0.70, blue: 0.50)  // slightly muted (was 0.80)

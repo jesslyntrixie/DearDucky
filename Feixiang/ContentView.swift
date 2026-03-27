@@ -2,28 +2,121 @@ import SwiftUI
 import SwiftData
 
 // ─────────────────────────────────────────────
-// MARK: - Root container — native tab bar (3 tabs)
+// MARK: - App Tab
+// ─────────────────────────────────────────────
+enum AppTab { case write, letters, ducky }
+
+// ─────────────────────────────────────────────
+// MARK: - Root
 // ─────────────────────────────────────────────
 struct ContentView: View {
+    @State private var activeTab: AppTab = .write
+
     var body: some View {
-        TabView {
-            WriteView()
-                .tabItem { Label("Write", systemImage: "pencil") }
-
-            NavigationStack {
-                GalleryView()
+        Group {
+            switch activeTab {
+            case .write:
+                WriteView()
+            case .letters:
+                NavigationStack { GalleryView() }
+            case .ducky:
+                DuckyProfileView()
             }
-            .tabItem { Label("Letters", systemImage: "envelope.fill") }
-
-            DuckyProfileView()
-                .tabItem { Label("Ducky", systemImage: "face.smiling.fill") }
         }
-        .tint(.skyBright)
+        .animation(.easeInOut(duration: 0.20), value: activeTab)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            GrassDock(activeTab: $activeTab)
+        }
     }
 }
 
 // ─────────────────────────────────────────────
-// MARK: - Write page (scrollable, two sections)
+// MARK: - Grass Dock  (Finch-style)
+// ─────────────────────────────────────────────
+struct GrassDock: View {
+    @Binding var activeTab: AppTab
+
+    private let bladePositions: [(x: CGFloat, height: CGFloat, angle: Double)] = [
+        (0.04, 10, -14), (0.10, 13,  7), (0.17,  9,  -5), (0.24, 14, 11),
+        (0.31,  8, -9),  (0.38, 12,  6), (0.45, 11, -11), (0.52,  9, 12),
+        (0.59, 13, -6),  (0.66, 10,  8), (0.73, 12, -13), (0.80,  9,  5),
+        (0.87, 13, -8),  (0.94,  8, 10),
+    ]
+
+    var body: some View {
+        VStack(spacing: 0) {
+            GeometryReader { geo in
+                ZStack(alignment: .bottom) {
+                    Color.gardenGreen
+                    ForEach(bladePositions.indices, id: \.self) { i in
+                        let b = bladePositions[i]
+                        Capsule()
+                            .fill(Color.leafGreen)
+                            .frame(width: 4, height: b.height)
+                            .rotationEffect(.degrees(b.angle), anchor: .bottom)
+                            .position(x: geo.size.width * b.x, y: -b.height * 0.3)
+                    }
+                }
+            }
+            .frame(height: 18)
+
+            HStack(alignment: .bottom, spacing: 0) {
+                DockTab(icon: "pencil",        label: "Write",   emoji: nil,  isActive: activeTab == .write)   { activeTab = .write }
+                DockTab(icon: "envelope.fill", label: "Letters", emoji: nil,  isActive: activeTab == .letters) { activeTab = .letters }
+                DockTab(icon: nil,             label: "Ducky",   emoji: "🦆", isActive: activeTab == .ducky)   { activeTab = .ducky }
+            }
+            .padding(.top, 6)
+            .padding(.bottom, 8)
+            .background(Color.gardenGreen)
+        }
+    }
+}
+
+struct DockTab: View {
+    let icon: String?
+    let label: String
+    let emoji: String?
+    let isActive: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            action()
+        } label: {
+            VStack(spacing: 4) {
+                ZStack {
+                    Capsule()
+                        .fill(Color.white.opacity(isActive ? 0.28 : 0))
+                        .frame(width: 52, height: 34)
+
+                    if let emoji {
+                        Text(emoji)
+                            .font(.title2)
+                            .scaleEffect(isActive ? 1.08 : 1.0)
+                    } else if let icon {
+                        Image(systemName: icon)
+                            .font(isActive ? .title3.bold() : .title3)
+                            .foregroundColor(.white)
+                    }
+                }
+                .animation(.spring(response: 0.28, dampingFraction: 0.65), value: isActive)
+
+                Text(label)
+                    .font(.system(.caption2, design: .rounded)
+                        .weight(isActive ? .bold : .regular))
+                    .foregroundColor(.white.opacity(isActive ? 1.0 : 0.62))
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .scaleEffect(isActive ? 1.06 : 1.0)
+        .animation(.spring(response: 0.28, dampingFraction: 0.65), value: isActive)
+        .buttonStyle(.plain)
+    }
+}
+
+// ─────────────────────────────────────────────
+// MARK: - Write page
 // ─────────────────────────────────────────────
 struct WriteView: View {
     @Environment(\.modelContext) private var modelContext
@@ -42,69 +135,52 @@ struct WriteView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
 
-                    // ── Section 1: Mascot hero (fills exactly one screen) ──
+                    // Section 1 — sky + duck hero (half screen)
                     MascotHeroSection()
-                        .frame(height: geo.size.height)
+                        .frame(height: geo.size.height * 0.48)
 
-                    // ── Section 2: Writing area ──
+                    // Section 2 — writing area on garden green
                     ZStack(alignment: .top) {
-                        Color(red: 0.96, green: 0.93, blue: 0.86)
-                            .ignoresSafeArea()
+                        Color.gardenGreen
 
                         VStack(spacing: 20) {
-
-                            // Duck greeting (replaces "Lettera" wordmark)
-                            HStack(spacing: 8) {
-                                Text("🦆")
-                                    .font(.system(size: 20))
-                                Text("Dear future me,")
-                                    .font(.system(.subheadline, design: .rounded))
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(.inkColor.opacity(0.52))
-                                    .tracking(0.5)
-                            }
-                            .padding(.top, 32)
-
-                            // Paper card
                             CleanLetterCard(title: $title, content: $content)
 
-                            // Color picker + send
-                            HStack(spacing: 8) {
+                            HStack(spacing: 12) {
                                 EnvelopeColorPicker(selectedIndex: $envelopeColorIndex)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 8)
+                                    .background(Capsule().fill(Color.white.opacity(0.88)))
+
                                 Spacer()
-                                Button {
+
+                                SendButton(colorIndex: envelopeColorIndex, enabled: canSend) {
                                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                                     showRitual = true
-                                } label: {
-                                    ZStack {
-                                        Circle()
-                                            .fill(EnvelopePalette.main(envelopeColorIndex).opacity(0.40))
-                                            .frame(width: 54, height: 54)
-                                            .offset(y: 4)
-                                        Circle()
-                                            .fill(EnvelopePalette.main(envelopeColorIndex))
-                                            .frame(width: 54, height: 54)
-                                        Image(systemName: "paperplane.fill")
-                                            .font(.system(size: 20, weight: .semibold))
-                                            .foregroundColor(.white)
-                                            .offset(x: 1, y: -1)
-                                    }
                                 }
-                                .disabled(!canSend)
-                                .opacity(canSend ? 1.0 : 0.32)
-                                .scaleEffect(canSend ? 1.0 : 0.92)
-                                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: canSend)
                             }
 
-                            Spacer(minLength: 110)
+                            Spacer(minLength: 64)
                         }
-                        .padding(.horizontal, 22)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 20)
                     }
-                    .frame(minHeight: geo.size.height)
+                    .frame(minHeight: geo.size.height * 0.60)
                 }
             }
+            // Background: sky blue top half, garden green bottom half.
+            // Both rubber-band bounce zones show the right colour.
+            // ignoresSafeArea covers the status bar with sky blue.
+            .background(
+                GeometryReader { bg in
+                    VStack(spacing: 0) {
+                        Color.skyBright.frame(height: bg.size.height * 0.50)
+                        Color.gardenGreen
+                    }
+                    .ignoresSafeArea()
+                }
+            )
         }
-        .ignoresSafeArea()
         .fullScreenCover(isPresented: $showRitual) {
             RitualView(
                 envelopeColorIndex: envelopeColorIndex,
@@ -128,289 +204,489 @@ struct WriteView: View {
 }
 
 // ─────────────────────────────────────────────
+// MARK: - Send button
+// ─────────────────────────────────────────────
+struct SendButton: View {
+    let colorIndex: Int
+    let enabled: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            ZStack {
+                Circle()
+                    .fill(EnvelopePalette.main(colorIndex).opacity(0.38))
+                    .frame(width: 54, height: 54)
+                    .offset(y: 4)
+                Circle()
+                    .fill(EnvelopePalette.main(colorIndex))
+                    .frame(width: 54, height: 54)
+                Image(systemName: "paperplane.fill")
+                    .font(.title3.weight(.semibold))
+                    .foregroundColor(.white)
+                    .offset(x: 1, y: -1)
+            }
+        }
+        .disabled(!enabled)
+        .opacity(enabled ? 1.0 : 0.30)
+        .scaleEffect(enabled ? 1.0 : 0.90)
+        .animation(.spring(response: 0.3, dampingFraction: 0.6), value: enabled)
+    }
+}
+
+// ─────────────────────────────────────────────
 // MARK: - Mascot Hero Section
 // ─────────────────────────────────────────────
 struct MascotHeroSection: View {
-    @State private var bobOffset: CGFloat = 0
-    @State private var chevronOpacity: Double = 0.5
+    @State private var chevronOpacity: Double = 0.45
 
     var body: some View {
         ZStack {
-            Color.skyBright
-                .ignoresSafeArea()
+            Color.skyBright.ignoresSafeArea()
 
-            // Hills + scene details
             GeometryReader { geo in
+                let w = geo.size.width
+                let h = geo.size.height
+                let trunkBrown  = Color(red: 0.50, green: 0.32, blue: 0.15)
+                let stemGreen   = Color(red: 0.14, green: 0.52, blue: 0.22)
+                let darkGreen   = Color(red: 0.10, green: 0.42, blue: 0.20)
+
                 ZStack {
-                    // Back hill (lighter)
+
+                    // ── Sun — top-right with soft glow ──
+//                    Circle()
+//                        .fill(Color.sunYellow.opacity(0.20))
+//                        .frame(width: w * 0.28, height: w * 0.28)
+//                        .position(x: w * 0.83, y: h * 0.18)
+                    Circle()
+                        .fill(Color.sunYellow.opacity(0.35))
+                        .frame(width: w * 0.20, height: w * 0.20)
+                        .position(x: w * 0.83, y: h * 0.18)
+                    Circle()
+                        .fill(Color.sunYellow)
+                        .frame(width: w * 0.13, height: w * 0.13)
+                        .position(x: w * 0.83, y: h * 0.18)
+
+                    // ── Birds ──
+                    BirdSilhouette()
+                        .stroke(Color.white.opacity(0.70), lineWidth: 1.5)
+                        .frame(width: 14, height: 7)
+                        .position(x: w * 0.28, y: h * 0.18)
+                    BirdSilhouette()
+                        .stroke(Color.white.opacity(0.45), lineWidth: 1.2)
+                        .frame(width: 10, height: 5)
+                        .position(x: w * 0.40, y: h * 0.24)
+
+                    // ── Back hill (mint) ──
                     Ellipse()
                         .fill(Color.mintFresh)
-                        .frame(width: geo.size.width * 1.5, height: 230)
-                        .offset(x: -geo.size.width * 0.25, y: geo.size.height - 145)
+                        .frame(width: w * 1.55, height: h * 0.58)
+                        .position(x: w * 0.30, y: h * 0.90)
 
-                    // Front hill (solid green)
+                    // ── Front hill (garden green) ──
                     Ellipse()
                         .fill(Color.gardenGreen)
-                        .frame(width: geo.size.width * 1.3, height: 195)
-                        .offset(x: geo.size.width * 0.05, y: geo.size.height - 112)
+                        .frame(width: w * 1.45, height: h * 0.52)
+                        .position(x: w * 0.60, y: h * 0.97)
 
-                    // ── Tree on back hill (left side) ──
-                    // Trunk
-                    Rectangle()
-                        .fill(Color(red: 0.50, green: 0.32, blue: 0.15))
-                        .frame(width: 7, height: 24)
-                        .offset(x: -geo.size.width * 0.22, y: geo.size.height - 62)
-                    // Canopy
-                    Circle()
-                        .fill(Color.leafGreen)
-                        .frame(width: 36, height: 36)
-                        .offset(x: -geo.size.width * 0.22, y: geo.size.height - 90)
+//
+                    
 
-                    // Smaller second tree
-                    Rectangle()
-                        .fill(Color(red: 0.50, green: 0.32, blue: 0.15))
-                        .frame(width: 5, height: 17)
-                        .offset(x: -geo.size.width * 0.10, y: geo.size.height - 57)
-                    Circle()
-                        .fill(Color(red: 0.10, green: 0.50, blue: 0.30))
-                        .frame(width: 26, height: 26)
-                        .offset(x: -geo.size.width * 0.10, y: geo.size.height - 79)
+                    // ── Tall tree — far left ──
+                    
+                        
 
-                    // ── Mailbox on front hill (right side) ──
-                    // Post
-                    Rectangle()
-                        .fill(Color(red: 0.50, green: 0.32, blue: 0.15))
-                        .frame(width: 4, height: 18)
-                        .offset(x: geo.size.width * 0.28, y: geo.size.height - 37)
-                    // Box body
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(Color(red: 0.20, green: 0.52, blue: 0.92))
-                        .frame(width: 20, height: 13)
-                        .offset(x: geo.size.width * 0.28, y: geo.size.height - 51)
-                    // Mailbox flag (coral red)
-                    Rectangle()
-                        .fill(Color.coral)
-                        .frame(width: 2, height: 8)
-                        .offset(x: geo.size.width * 0.28 + 11, y: geo.size.height - 54)
+                    // ── Small tree — left-centre ──
+                   
 
-                    // Small yellow flowers
-                    let flowerXs: [CGFloat] = [50, 150, 240, 310]
-                    let flowerYs: [CGFloat] = [-28, -20, -34, -18]
-                    ForEach(0..<4, id: \.self) { i in
+                    // ── Pond — RIGHT of duck (duck is centred ~0.50) ──
+                    // Place pond at 0.68 so it's clearly to duck's right
+                    Ellipse()
+                        .fill(Color(red: 0.38, green: 0.72, blue: 0.96).opacity(0.88))
+                        .frame(width: w * 0.22, height: h * 0.065)
+                        .position(x: w * 0.68, y: h * 0.77)
+                    // Highlight shimmer
+                    Ellipse()
+                        .fill(Color.white.opacity(0.28))
+                        .frame(width: w * 0.09, height: h * 0.018)
+                        .position(x: w * 0.65, y: h * 0.762)
+                    // Ripple stroke
+                    Ellipse()
+                        .strokeBorder(Color.white.opacity(0.30), lineWidth: 0.8)
+                        .frame(width: w * 0.14, height: h * 0.030)
+                        .position(x: w * 0.68, y: h * 0.775)
+
+                    // ── Mailbox — far right ──
+//                    Rectangle()
+//                        .fill(trunkBrown)
+//                        .frame(width: 4, height: h * 0.11)
+//                        .position(x: w * 0.86, y: h * 0.82)
+//                    RoundedRectangle(cornerRadius: 3)
+//                        .fill(Color(red: 0.20, green: 0.52, blue: 0.92))
+//                        .frame(width: w * 0.10, height: h * 0.065)
+//                        .position(x: w * 0.86, y: h * 0.73)
+//                    Ellipse()
+//                        .fill(Color(red: 0.14, green: 0.40, blue: 0.80))
+//                        .frame(width: w * 0.10, height: h * 0.028)
+//                        .position(x: w * 0.86, y: h * 0.700)
+//                    Rectangle()
+//                        .fill(Color.coral)
+//                        .frame(width: 2.5, height: h * 0.048)
+//                        .position(x: w * 0.86 + w * 0.057, y: h * 0.720)
+
+                    
+                    // ── Flowers with stems + leaves ──
+                    // Layout: left of duck (0.22, 0.38) and right of pond (0.80)
+                    let flowerX: [CGFloat] = [0.12, 0.24, 0.84, 0.70, 0.89, 0.30]
+                    let flowerY: [CGFloat] = [0.87, 0.90, 0.93, 0.91, 0.89, 0.85]
+                    let petalColors: [Color] = [.blush, Color(red:0.88,green:0.66,blue:1.0), .blush, Color(red:1.0,green:0.80,blue:0.60),
+                        Color.white,
+                                                Color.white]
+                    ForEach(0..<6, id: \.self) { i in
+                        let fx = w * flowerX[i]
+                        let fy = h * flowerY[i]
+                        // Stem
+                        Rectangle()
+                            .fill(stemGreen)
+                            .frame(width: 2, height: h * 0.055)
+                            .position(x: fx, y: fy + h * 0.038)
+                        // Leaf (small rotated ellipse)
+                        Ellipse()
+                            .fill(stemGreen.opacity(0.85))
+                            .frame(width: 9, height: 5)
+                            .rotationEffect(.degrees(i % 2 == 0 ? 40 : -40))
+                            .position(x: fx + (i % 2 == 0 ? 5 : -5), y: fy + h * 0.028)
+                        // Petals (outer ring)
+                        Circle()
+                            .fill(petalColors[i].opacity(0.90))
+                            .frame(width: 14, height: 14)
+                            .position(x: fx, y: fy)
+                        // Centre dot
                         Circle()
                             .fill(Color.sunYellow)
-                            .frame(width: 11, height: 11)
-                            .offset(x: flowerXs[i], y: geo.size.height + flowerYs[i] - 28)
+                            .frame(width: 6, height: 6)
+                            .position(x: fx, y: fy)
                     }
                 }
             }
 
-            // Flat white clouds
             VStack {
                 HStack(alignment: .top) {
-                    CloudView(scale: 0.90, opacity: 1.0)
-                        .offset(x: -6, y: 62)
+                    CloudView(scale: 2, opacity: 1.0).offset(x: -40, y: -10)
                     Spacer()
-                    CloudView(scale: 0.60, opacity: 1.0)
-                        .offset(x: 10, y: 90)
+                    CloudView(scale: 0.55, opacity: 1.0).offset(x: 8,  y: 66)
+                    
+                    CloudView(scale: 0.85, opacity: 1.0).offset(x: 8,  y: 66)
                 }
-                .padding(.horizontal, 12)
+                .padding(.horizontal, 14)
                 Spacer()
             }
 
-            // Duck mascot + greeting + scroll hint
             VStack(spacing: 0) {
                 Spacer()
 
-                // Duck mascot with gentle bob
-                MascotDuckView()
-                    .frame(width: 130, height: 140)
-                    .offset(y: bobOffset)
-                    .onAppear {
-                        withAnimation(
-                            .easeInOut(duration: 1.8)
-                            .repeatForever(autoreverses: true)
-                        ) {
-                            bobOffset = -9
-                        }
-                    }
-
-                Spacer().frame(height: 20)
-
-                // Greeting text — Ducky introduces herself
-                VStack(spacing: 4) {
-                    Text("Hi, I'm Ducky! 🦆")
-                        .font(.system(size: 16, weight: .semibold, design: .rounded))
-                        .foregroundColor(.white.opacity(0.85))
+                VStack() {
+//                    Text("Hi, I'm Terry!")
+//                        .font(.system(.headline, design: .rounded).weight(.semibold))
+//                        .foregroundColor(.white.opacity(0.90))
                     Text("What would you tell")
-                        .font(.system(size: 25, weight: .heavy, design: .rounded))
-                        .foregroundColor(.white)
+                        .font(.system(.title2, design: .rounded).weight(.heavy))
+                        .foregroundColor(.inkColor)
                     Text("your future self?")
-                        .font(.system(size: 25, weight: .heavy, design: .rounded))
-                        .foregroundColor(.white)
+                        .font(.system(.title2, design: .rounded).weight(.heavy))
+                        .foregroundColor(.inkColor)
+                        .padding(.bottom)
+                    
                 }
                 .multilineTextAlignment(.center)
-                .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
+                .shadow(color: .black.opacity(0.08), radius: 3, y: 2)
+                .padding(.bottom)
 
-                Spacer()
+                MascotDuckView()
+                    .frame(width: 100, height: 110)
+                    .scaleEffect(0.7)
 
-                // Scroll hint (pulsing chevron)
-                VStack(spacing: 5) {
-                    Image(systemName: "chevron.compact.down")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(.white.opacity(chevronOpacity))
-                        .onAppear {
-                            withAnimation(
-                                .easeInOut(duration: 1.1)
-                                .repeatForever(autoreverses: true)
-                            ) {
-                                chevronOpacity = 1.0
-                            }
-                        }
-                    Text("scroll to write")
-                        .font(.system(.caption, design: .rounded))
-                        .foregroundColor(.white.opacity(0.55))
-                }
-                .padding(.bottom, 40)
+//                Image(systemName: "chevron.compact.down")
+//                    .font(.title2)
+//                    .foregroundColor(.white.opacity(chevronOpacity))
+//                    .padding(.top, 8)
+//                    .onAppear {
+//                        withAnimation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true)) {
+//                            chevronOpacity = 1.0
+//                        }
+//                    }
+
+                Spacer().frame(height: 4)
             }
         }
     }
 }
 
 // ─────────────────────────────────────────────
-// MARK: - Mascot Duck 🦆
+// MARK: - Mascot Duck
 // ─────────────────────────────────────────────
 struct MascotDuckView: View {
+    @State private var eyeOffset: CGSize = .zero
+    @State private var blinkScale: CGFloat = 1.0
+ 
+    private let wingColor = Color(red: 0.94, green: 0.74, blue: 0.10)
+    private let billColor  = Color(red: 1.00, green: 0.52, blue: 0.12)
+    private let pupilColor = Color(red: 0.10, green: 0.08, blue: 0.12)
+ 
     var body: some View {
         ZStack {
-            // Ground shadow
+            // ── Ground shadow ──
             Ellipse()
                 .fill(Color.black.opacity(0.09))
-                .frame(width: 72, height: 14)
-                .offset(y: 62)
-
-            // Body
+                .frame(width: 68, height: 12)
+                .offset(y: 55)
+            // ── Wings ──
             Ellipse()
-                .fill(Color.sunYellow)
-                .frame(width: 84, height: 70)
-                .offset(y: 18)
-
-            // Left wing (slightly darker yellow)
-            Ellipse()
-                .fill(Color(red: 0.94, green: 0.75, blue: 0.10))
-                .frame(width: 30, height: 18)
-                .rotationEffect(.degrees(-18))
-                .offset(x: -48, y: 14)
-
-            // Right wing
-            Ellipse()
-                .fill(Color(red: 0.94, green: 0.75, blue: 0.10))
-                .frame(width: 30, height: 18)
-                .rotationEffect(.degrees(18))
-                .offset(x: 48, y: 14)
-
-            // Head
+                            .fill(wingColor)
+                            .frame(width: 38, height: 22)
+                            .rotationEffect(.degrees(-30))
+                            .offset(x: -44, y: 8)
+                        Ellipse()
+                            .fill(wingColor)
+                            .frame(width: 38, height: 22)
+                            .rotationEffect(.degrees(30))
+                            .offset(x:  44, y: 8)
+ 
+            // ── Body ──
             Circle()
                 .fill(Color.sunYellow)
-                .frame(width: 64, height: 64)
-                .offset(y: -8)
-
-            // Head tuft — 3 little bumps on top
+                .frame(width: 80, height: 90)
+                .offset(y: 10)
+ 
+            
+                            
+ 
+            // ── Head  (center at y: -40) ──
+            Ellipse()
+                .fill(Color.sunYellow)
+                .frame(width: 96, height: 89)
+                .offset(y: -40)
+ 
+            // ── Head tuft (3 blobs above head top ≈ y: -76) ──
+            Circle().fill(wingColor).frame(width: 10, height: 15).offset(x: -8,  y: -80)
+            Circle().fill(wingColor).frame(width: 13, height: 18).offset(x:  0,  y: -84)
+            Circle().fill(wingColor).frame(width: 10, height: 15).offset(x:  8,  y: -80)
+  
+            // ── Blush — big soft ovals on cheeks of head ──
+            // Head cheeks are around y: -36, x: ±28
             Circle()
-                .fill(Color(red: 0.94, green: 0.75, blue: 0.10))
+                .fill(Color.peach.opacity(0.55))
+                .frame(width: 28, height: 28)
+                .offset(x: -32, y: -28)
+            Circle()
+                .fill(Color.peach.opacity(0.55))
+                .frame(width: 28, height: 28)
+                .offset(x:  32, y: -28)
+ 
+            // ── Eyes — oval black, no white ring, on upper face ──
+            // Head center y: -40. Eyes sit at y: -44 (upper face).
+            Ellipse()
+                .fill(pupilColor)
                 .frame(width: 11, height: 16)
-                .offset(x: -8, y: -38)
-            Circle()
-                .fill(Color(red: 0.94, green: 0.75, blue: 0.10))
-                .frame(width: 13, height: 18)
-                .offset(x: 0, y: -42)
-            Circle()
-                .fill(Color(red: 0.94, green: 0.75, blue: 0.10))
+                .scaleEffect(x: 1.0, y: blinkScale, anchor: .center)
+                .offset(x: -19 + eyeOffset.width, y: -40 + eyeOffset.height)
+            Ellipse()
+                .fill(pupilColor)
                 .frame(width: 11, height: 16)
-                .offset(x: 8, y: -38)
-
-            // Eyes
+                .scaleEffect(x: 1.0, y: blinkScale, anchor: .center)
+                .offset(x:  19 + eyeOffset.width, y: -40 + eyeOffset.height)
+ 
+            // ── Tiny shine dot (gives eyes life) ──
             Circle()
-                .fill(Color(red: 0.10, green: 0.08, blue: 0.12))
-                .frame(width: 10, height: 10)
-                .offset(x: -13, y: -12)
-            Circle()
-                .fill(Color(red: 0.10, green: 0.08, blue: 0.12))
-                .frame(width: 10, height: 10)
-                .offset(x: 13, y: -12)
-
-            // Eye shine
-            Circle()
-                .fill(Color.white)
+                .fill(Color.white.opacity(0.75))
                 .frame(width: 3.5, height: 3.5)
-                .offset(x: -11, y: -14)
+                .scaleEffect(x: 1.0, y: blinkScale, anchor: .center)
+                .offset(x: -17 + eyeOffset.width, y: -44 + eyeOffset.height)
             Circle()
-                .fill(Color.white)
+                .fill(Color.white.opacity(0.75))
                 .frame(width: 3.5, height: 3.5)
-                .offset(x: 15, y: -14)
-
-            // Cheek blush spots
+                .scaleEffect(x: 1.0, y: blinkScale, anchor: .center)
+                .offset(x:  21 + eyeOffset.width, y: -44 + eyeOffset.height)
+ 
+            // ── Bill — flat duck bill, lower face ──
+            // Lower face of head: y: -40 + ~14 = -26
             Ellipse()
-                .fill(Color.peach.opacity(0.52))
-                .frame(width: 15, height: 10)
-                .offset(x: -22, y: -6)
-            Ellipse()
-                .fill(Color.peach.opacity(0.52))
-                .frame(width: 15, height: 10)
-                .offset(x: 22, y: -6)
-
-            // Bill — wide, flat, orange (duck-style)
-            Ellipse()
-                .fill(Color(red: 1.00, green: 0.52, blue: 0.12))
-                .frame(width: 24, height: 11)
-                .offset(y: -3)
-            // Bill crease
+                .fill(billColor)
+                .frame(width: 26, height: 17)
+                .offset(y: -32)
             Capsule()
-                .fill(Color(red: 0.80, green: 0.36, blue: 0.08).opacity(0.42))
-                .frame(width: 16, height: 1.5)
-                .offset(y: -3)
-
-            // Left foot — 3 small toe capsules fanned out
-            ZStack {
-                Capsule()
-                    .fill(Color(red: 1.00, green: 0.52, blue: 0.12))
-                    .frame(width: 14, height: 5)
-                    .rotationEffect(.degrees(-22))
-                    .offset(x: -5)
-                Capsule()
-                    .fill(Color(red: 1.00, green: 0.52, blue: 0.12))
-                    .frame(width: 14, height: 5)
-                Capsule()
-                    .fill(Color(red: 1.00, green: 0.52, blue: 0.12))
-                    .frame(width: 14, height: 5)
-                    .rotationEffect(.degrees(22))
-                    .offset(x: 5)
+                .fill(Color(red: 0.80, green: 0.36, blue: 0.08).opacity(0.35))
+                .frame(width: 17, height: 1.6)
+                .offset(y: -28)
+ 
+            // ── Feet ──
+            
+            Ellipse()
+                            .fill(billColor)
+                            .frame(width: 28, height: 14)
+                            .offset(x: -16, y: 50)
+                        Ellipse()
+                            .fill(billColor)
+                            .frame(width: 28, height: 14)
+                            .offset(x:  16, y: 50)
+        }
+        .onAppear { scheduleBlink(); scheduleLook() }
+    }
+ 
+    private func scheduleBlink() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(Int.random(in: 2800...4500))) {
+            withAnimation(.easeIn(duration: 0.07))  { blinkScale = 0.08 }
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(130)) {
+                withAnimation(.easeOut(duration: 0.09)) { blinkScale = 1.0 }
+                scheduleBlink()
             }
-            .offset(x: -18, y: 58)
-
-            // Right foot
-            ZStack {
-                Capsule()
-                    .fill(Color(red: 1.00, green: 0.52, blue: 0.12))
-                    .frame(width: 14, height: 5)
-                    .rotationEffect(.degrees(-22))
-                    .offset(x: -5)
-                Capsule()
-                    .fill(Color(red: 1.00, green: 0.52, blue: 0.12))
-                    .frame(width: 14, height: 5)
-                Capsule()
-                    .fill(Color(red: 1.00, green: 0.52, blue: 0.12))
-                    .frame(width: 14, height: 5)
-                    .rotationEffect(.degrees(22))
-                    .offset(x: 5)
+        }
+    }
+ 
+    private func scheduleLook() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(Int.random(in: 3500...6000))) {
+            let dirs: [CGSize] = [
+                .init(width: -3.5, height: 0),   .init(width: 3.5, height: 0),
+                .init(width: 0,   height: -2.5),  .init(width: 2.5, height: 2.0),
+                .init(width: -2.0, height: 2.0),  .init(width: 3.0, height: -1.5),
+            ]
+            withAnimation(.easeInOut(duration: 0.22)) { eyeOffset = dirs.randomElement()! }
+            DispatchQueue.main.asyncAfter(deadline: .now() + .milliseconds(Int.random(in: 600...1400))) {
+                withAnimation(.easeInOut(duration: 0.20)) { eyeOffset = .zero }
+                scheduleLook()
             }
-            .offset(x: 18, y: 58)
+        }
+    }
+}
+ 
+private struct DuckFoot: View {
+    private let c = Color(red: 1, green: 0.52, blue: 0.12)
+    var body: some View {
+        ZStack {
+            Capsule().fill(c).frame(width: 11, height: 4).rotationEffect(.degrees(-22)).offset(x: -4)
+            Capsule().fill(c).frame(width: 11, height: 4)
+            Capsule().fill(c).frame(width: 11, height: 4).rotationEffect(.degrees(22)).offset(x: 4)
         }
     }
 }
 
 // ─────────────────────────────────────────────
-// MARK: - Ducky Profile Tab (3rd tab)
+// MARK: - Clean Letter Card
+// ─────────────────────────────────────────────
+struct CleanLetterCard: View {
+    @Binding var title: String
+    @Binding var content: String
+    @FocusState private var focusedField: CardField?
+    enum CardField { case title, content }
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(red: 0.72, green: 0.66, blue: 0.50))
+                .offset(x: 3, y: 7)
+                .allowsHitTesting(false)
+
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.paperCream)
+                .allowsHitTesting(false)
+
+            Rectangle()
+                .fill(Color.peach.opacity(0.50))
+                .frame(width: 1.5)
+                .padding(.leading, 54)
+                .clipShape(RoundedRectangle(cornerRadius: 22))
+                .allowsHitTesting(false)
+
+            VStack(alignment: .leading, spacing: 0) {
+
+                HStack(alignment: .top) {
+                    Spacer()
+                    Text(Date(), style: .date)
+                        .font(.system(.caption2, design: .rounded))
+                        .foregroundColor(.inkColor.opacity(0.28))
+                        .padding(.top, 18)
+                    StampDecoration().padding(.trailing, 6)
+                }
+                .padding(.trailing, 16)
+
+                Text("Dear Future Me,")
+                    .font(.system(.headline, design: .rounded).weight(.bold))
+                    .foregroundColor(.inkColor.opacity(0.80))
+                    .padding(.leading, 66)
+                    .padding(.trailing, 20)
+                    .padding(.top, 6)
+                    .padding(.bottom, 4)
+
+                TextField("Give your letter a title…", text: $title)
+                    .font(.system(.title3, design: .rounded).weight(.bold))
+                    .foregroundColor(.inkColor)
+                    .focused($focusedField, equals: .title)
+                    .submitLabel(.next)
+                    .onSubmit { focusedField = .content }
+                    .padding(.leading, 66)
+                    .padding(.trailing, 20)
+
+                Rectangle()
+                    .fill(Color.inkColor.opacity(0.07))
+                    .frame(height: 1)
+                    .padding(.leading, 66)
+                    .padding(.trailing, 20)
+                    .padding(.vertical, 8)
+
+                ZStack(alignment: .topLeading) {
+                    if content.isEmpty {
+                        Text("Write anything — hopes, gratitude,\ngoals, fears. Your future self will read this.")
+                            .font(.system(.body, design: .rounded))
+                            .foregroundColor(.inkColor.opacity(0.22))
+                            .padding(.leading, 66)
+                            .padding(.trailing, 20)
+                            .padding(.top, 8)
+                            .allowsHitTesting(false)
+                    }
+                    TextEditor(text: $content)
+                        .font(.system(.body, design: .rounded))
+                        .foregroundColor(.inkColor)
+                        .scrollContentBackground(.hidden)
+                        .background(Color.clear)
+                        .focused($focusedField, equals: .content)
+                        .padding(.leading, 62)
+                        .padding(.trailing, 16)
+                        .padding(.bottom, 16)
+                        .frame(minHeight: 180)
+                }
+            }
+        }
+        .shadow(color: .black.opacity(0.10), radius: 14, y: 6)
+        .onTapGesture {
+            if focusedField == nil { focusedField = title.isEmpty ? .title : .content }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────
+// MARK: - Stamp decoration
+// ─────────────────────────────────────────────
+struct StampDecoration: View {
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 3)
+                .strokeBorder(Color.peach.opacity(0.50),
+                              style: StrokeStyle(lineWidth: 1.2, dash: [2.5, 2]))
+                .frame(width: 30, height: 36)
+            RoundedRectangle(cornerRadius: 2)
+                .fill(Color.paperCream.opacity(0.55))
+                .frame(width: 22, height: 28)
+            Image(systemName: "heart.fill")
+                .font(.system(size: 11))
+                .foregroundColor(.blush)
+        }
+        .padding(.top, 12)
+    }
+}
+
+// ─────────────────────────────────────────────
+// MARK: - Ducky Profile (3rd tab)
 // ─────────────────────────────────────────────
 struct DuckyProfileView: View {
     @Query(sort: \Letter.timestamp, order: .reverse) private var letters: [Letter]
@@ -424,82 +700,57 @@ struct DuckyProfileView: View {
     }
 
     private var encouragementText: String {
-        if totalLetters == 0 {
-            return "Every journey starts with one letter.\nWrite your first one! 💌"
-        } else if totalLetters == 1 {
-            return "You've started something beautiful.\nKeep writing to your future self! 🌟"
-        } else {
-            return "Your future self has \(totalLetters) letters waiting.\nThey'll be so happy to read them! ✨"
+        switch totalLetters {
+        case 0:  return "Every journey starts with one letter.\nWrite your first one! 💌"
+        case 1:  return "You've started something beautiful.\nKeep writing to your future self! 🌟"
+        default: return "Your future self has \(totalLetters) letters waiting.\nThey'll be so happy to read them! ✨"
         }
     }
 
     var body: some View {
         ZStack {
-            // Sky gradient (consistent with rest of app)
-            LinearGradient(
-                colors: [Color.skyDeep, Color.skyBright, Color.skyLight],
-                startPoint: .top, endPoint: .bottom
-            )
-            .ignoresSafeArea()
-
-            // Soft clouds
-            CloudView(scale: 0.85, opacity: 0.80).position(x: 70,  y: 120)
-            CloudView(scale: 0.60, opacity: 0.65).position(x: 310, y: 170)
+            Color.skyBright.ignoresSafeArea()
+            CloudView(scale: 0.85, opacity: 1.0).position(x: 70,  y: 120)
+            CloudView(scale: 0.60, opacity: 1.0).position(x: 310, y: 170)
 
             VStack(spacing: 28) {
                 Spacer()
 
-                // Large duck mascot
                 MascotDuckView()
-                    .frame(width: 160, height: 170)
-                    .scaleEffect(1.18)
+                    .frame(width: 150, height: 160)
+                    .scaleEffect(1.15)
                     .offset(y: bobOffset)
                     .onAppear {
                         withAnimation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true)) {
-                            bobOffset = -9
+                            bobOffset = -8
                         }
                     }
 
-                // Name
-                Text("Hi, I'm Ducky!")
-                    .font(.system(.title, design: .rounded))
-                    .fontWeight(.heavy)
+                Text("Hi, I'm Terry!")
+                    .font(.system(.title, design: .rounded).weight(.heavy))
                     .foregroundColor(.white)
                     .shadow(color: .black.opacity(0.08), radius: 4, y: 2)
 
-                // Stats row
                 HStack(spacing: 16) {
-                    DuckyStatCard(
-                        number: "\(totalLetters)",
-                        label: "Letters\nSent",
-                        icon: "envelope.fill"
-                    )
-                    DuckyStatCard(
-                        number: totalLetters > 0 ? "\(daysSinceFirst)" : "—",
-                        label: "Days\nWriting",
-                        icon: "calendar.badge.clock"
-                    )
+                    DuckyStatCard(number: "\(totalLetters)", label: "Letters\nSent",    icon: "envelope.fill")
+                    DuckyStatCard(number: totalLetters > 0 ? "\(daysSinceFirst)" : "—",
+                                  label: "Days\nWriting", icon: "calendar.badge.clock")
                 }
                 .padding(.horizontal, 40)
 
-                // Encouragement bubble
                 Text(encouragementText)
                     .font(.system(.body, design: .rounded))
                     .foregroundColor(.white.opacity(0.92))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 24)
                     .padding(.vertical, 18)
-                    .background(
-                        RoundedRectangle(cornerRadius: 18)
-                            .fill(Color.white.opacity(0.18))
-                    )
+                    .background(RoundedRectangle(cornerRadius: 18).fill(Color.white.opacity(0.18)))
                     .padding(.horizontal, 32)
 
                 Spacer()
                 Spacer()
             }
         }
-        .navigationTitle("Ducky")
     }
 }
 
@@ -514,141 +765,40 @@ struct DuckyStatCard: View {
                 .font(.title2)
                 .foregroundColor(.sunYellow)
             Text(number)
-                .font(.system(.title, design: .rounded))
-                .fontWeight(.heavy)
+                .font(.system(.title, design: .rounded).weight(.heavy))
                 .foregroundColor(.white)
             Text(label)
-                .font(.system(.caption, design: .rounded))
-                .fontWeight(.semibold)
+                .font(.system(.caption, design: .rounded).weight(.semibold))
                 .foregroundColor(.white.opacity(0.72))
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 22)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color.white.opacity(0.18))
-        )
+        .background(RoundedRectangle(cornerRadius: 20).fill(Color.white.opacity(0.18)))
     }
 }
 
 // ─────────────────────────────────────────────
-// MARK: - Clean Letter Card (unchanged)
+// MARK: - Bird silhouette (tiny V in the sky)
 // ─────────────────────────────────────────────
-struct CleanLetterCard: View {
-    @Binding var title: String
-    @Binding var content: String
-    @FocusState private var focusedField: CardField?
-
-    enum CardField { case title, content }
-
-    var body: some View {
-        ZStack(alignment: .topLeading) {
-
-            // Paper thickness shadow
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color(red: 0.78, green: 0.72, blue: 0.58).opacity(0.45))
-                .offset(x: 3, y: 7)
-                .allowsHitTesting(false)
-
-            // Paper body
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color.paperCream)
-                .allowsHitTesting(false)
-
-            // Left margin line
-            Rectangle()
-                .fill(Color.peach.opacity(0.42))
-                .frame(width: 1.5)
-                .padding(.leading, 54)
-                .clipShape(RoundedRectangle(cornerRadius: 22))
-                .allowsHitTesting(false)
-
-            VStack(alignment: .leading, spacing: 0) {
-
-                HStack(alignment: .top, spacing: 8) {
-                    Spacer()
-                    Text(Date(), style: .date)
-                        .font(.system(.caption2, design: .rounded))
-                        .foregroundColor(.inkColor.opacity(0.30))
-                        .padding(.top, 20)
-                        .padding(.trailing, 20)
-                    StampDecoration()
-                }
-                .padding(.trailing, 18)
-
-                TextField("Give your letter a title…", text: $title)
-                    .font(.system(.title3, design: .rounded))
-                    .fontWeight(.bold)
-                    .foregroundColor(.inkColor)
-                    .focused($focusedField, equals: .title)
-                    .submitLabel(.next)
-                    .onSubmit { focusedField = .content }
-                    .padding(.leading, 66)
-                    .padding(.trailing, 22)
-                    .padding(.top, 2)
-
-                Rectangle()
-                    .fill(Color.inkColor.opacity(0.07))
-                    .frame(height: 1)
-                    .padding(.leading, 66)
-                    .padding(.trailing, 22)
-                    .padding(.vertical, 8)
-
-                ZStack(alignment: .topLeading) {
-                    if content.isEmpty {
-                        Text("Write anything — hopes, gratitude, goals, fears.\nYour future self will read this.")
-                            .font(.system(.body, design: .rounded))
-                            .foregroundColor(.inkColor.opacity(0.22))
-                            .padding(.leading, 66)
-                            .padding(.trailing, 22)
-                            .padding(.top, 8)
-                            .allowsHitTesting(false)
-                    }
-                    TextEditor(text: $content)
-                        .font(.system(.body, design: .rounded))
-                        .foregroundColor(.inkColor)
-                        .scrollContentBackground(.hidden)
-                        .background(Color.clear)
-                        .focused($focusedField, equals: .content)
-                        .padding(.leading, 62)
-                        .padding(.trailing, 18)
-                        .padding(.bottom, 16)
-                        .frame(minHeight: 170)
-                }
-            }
-        }
-        .shadow(color: .black.opacity(0.07), radius: 16, y: 8)
-        .onTapGesture {
-            if focusedField == nil { focusedField = title.isEmpty ? .title : .content }
-        }
+struct BirdSilhouette: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        p.move(to: CGPoint(x: rect.minX, y: rect.midY))
+        p.addQuadCurve(to: CGPoint(x: rect.midX, y: rect.maxY),
+                       control: CGPoint(x: rect.width * 0.25, y: rect.minY))
+        p.addQuadCurve(to: CGPoint(x: rect.maxX, y: rect.midY),
+                       control: CGPoint(x: rect.width * 0.75, y: rect.minY))
+        return p
     }
 }
 
-// ─────────────────────────────────────────────
-// MARK: - Stamp decoration (unchanged)
-// ─────────────────────────────────────────────
-struct StampDecoration: View {
-    var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 3)
-                .strokeBorder(
-                    Color.peach.opacity(0.50),
-                    style: StrokeStyle(lineWidth: 1.2, dash: [2.5, 2])
-                )
-                .frame(width: 30, height: 36)
-            RoundedRectangle(cornerRadius: 2)
-                .fill(Color.paperCream.opacity(0.55))
-                .frame(width: 22, height: 28)
-            Image(systemName: "heart.fill")
-                .font(.system(size: 11))
-                .foregroundColor(.blush.opacity(1.0))
-        }
-        .padding(.top, 12)
-    }
-}
+
 
 #Preview {
     ContentView()
         .modelContainer(for: Letter.self, inMemory: true)
 }
+
+
+
