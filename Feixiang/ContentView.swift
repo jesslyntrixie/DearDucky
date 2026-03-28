@@ -36,29 +36,29 @@ struct ContentView: View {
 struct GrassDock: View {
     @Binding var activeTab: AppTab
 
-    private let bladePositions: [(x: CGFloat, height: CGFloat, angle: Double)] = [
-        (0.04, 10, -14), (0.10, 13,  7), (0.17,  9,  -5), (0.24, 14, 11),
-        (0.31,  8, -9),  (0.38, 12,  6), (0.45, 11, -11), (0.52,  9, 12),
-        (0.59, 13, -6),  (0.66, 10,  8), (0.73, 12, -13), (0.80,  9,  5),
-        (0.87, 13, -8),  (0.94,  8, 10),
-    ]
+//    private let bladePositions: [(x: CGFloat, height: CGFloat, angle: Double)] = [
+//        (0.04, 10, -14), (0.10, 13,  7), (0.17,  9,  -5), (0.24, 14, 11),
+//        (0.31,  8, -9),  (0.38, 12,  6), (0.45, 11, -11), (0.52,  9, 12),
+//        (0.59, 13, -6),  (0.66, 10,  8), (0.73, 12, -13), (0.80,  9,  5),
+//        (0.87, 13, -8),  (0.94,  8, 10),
+//    ]
 
     var body: some View {
         VStack(spacing: 0) {
-            GeometryReader { geo in
-                ZStack(alignment: .bottom) {
-                    Color.gardenGreen
-                    ForEach(bladePositions.indices, id: \.self) { i in
-                        let b = bladePositions[i]
-                        Capsule()
-                            .fill(Color.leafGreen)
-                            .frame(width: 4, height: b.height)
-                            .rotationEffect(.degrees(b.angle), anchor: .bottom)
-                            .position(x: geo.size.width * b.x, y: -b.height * 0.3)
-                    }
-                }
-            }
-            .frame(height: 18)
+//            GeometryReader { geo in
+//                ZStack(alignment: .bottom) {
+//                    Color.gardenGreen
+//                    ForEach(bladePositions.indices, id: \.self) { i in
+//                        let b = bladePositions[i]
+//                        Capsule()
+//                            .fill(Color.leafGreen)
+//                            .frame(width: 4, height: b.height)
+//                            .rotationEffect(.degrees(b.angle), anchor: .bottom)
+//                            .position(x: geo.size.width * b.x, y: -b.height * 0.3)
+//                    }
+//                }
+//            }
+//            .frame(height: 18)
 
             HStack(alignment: .bottom, spacing: 0) {
                 DockTab(icon: "pencil",        label: "Write",   emoji: nil,  isActive: activeTab == .write)   { activeTab = .write }
@@ -66,7 +66,7 @@ struct GrassDock: View {
                 DockTab(icon: nil,             label: "Ducky",   emoji: "🦆", isActive: activeTab == .ducky)   { activeTab = .ducky }
             }
             .padding(.top, 6)
-            .padding(.bottom, 8)
+//            .padding(.bottom, 6)
             .background(Color.gardenGreen)
         }
     }
@@ -141,7 +141,7 @@ struct WriteView: View {
 
                     // Section 2 — writing area on garden green
                     ZStack(alignment: .top) {
-                        Color.gardenGreen
+                        Color.mintFresh
 
                         VStack(spacing: 20) {
                             CleanLetterCard(title: $title, content: $content)
@@ -175,7 +175,7 @@ struct WriteView: View {
                 GeometryReader { bg in
                     VStack(spacing: 0) {
                         Color.skyBright.frame(height: bg.size.height * 0.50)
-                        Color.gardenGreen
+                        Color.mintFresh
                     }
                     .ignoresSafeArea()
                 }
@@ -279,13 +279,13 @@ struct MascotHeroSection: View {
 
                     // ── Back hill (mint) ──
                     Ellipse()
-                        .fill(Color.mintFresh)
+                        .fill(Color.gardenGreen)
                         .frame(width: w * 1.55, height: h * 0.58)
                         .position(x: w * 0.30, y: h * 0.90)
 
                     // ── Front hill (garden green) ──
                     Ellipse()
-                        .fill(Color.gardenGreen)
+                        .fill(Color.mintFresh)
                         .frame(width: w * 1.45, height: h * 0.52)
                         .position(x: w * 0.60, y: h * 0.97)
 

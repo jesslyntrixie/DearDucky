@@ -9,7 +9,7 @@ extension Color {
     static let skyDeep     = Color(red: 0.15, green: 0.48, blue: 0.88)
     static let gardenGreen = Color(red: 0.26, green: 0.70, blue: 0.50)  // slightly muted (was 0.80)
     static let leafGreen   = Color(red: 0.14, green: 0.56, blue: 0.36)  // muted (was 0.62)
-    static let mintFresh   = Color(red: 0.68, green: 0.90, blue: 0.76)  // softer (was 0.95)
+    static let mintFresh   = Color(red: 0.42, green: 0.80, blue: 0.62)  // softer (was 0.95)
     static let sunYellow   = Color(red: 1.00, green: 0.84, blue: 0.18)  // duck color — unchanged
     static let peach       = Color(red: 1.00, green: 0.66, blue: 0.50)  // slightly muted (was 0.62)
     static let coral       = Color(red: 0.96, green: 0.44, blue: 0.42)  // slightly muted (was 1.00/0.42)
