@@ -1,0 +1,14 @@
+# macOS
+.DS_Store
+
+# Xcode per-user settings (breakpoints, UI state, personal schemes)
+xcuserdata/
+*.xcuserstate
+
+# Xcode build output
+build/
+DerivedData/
+
+# Research papers used during discovery. Copyrighted, so they stay local
+# and are cited in the README instead.
+*.pdf

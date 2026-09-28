@@ -1,3 +1,5 @@
+// DearDucky/Resources/DesignSystem
+
 import SwiftUI
 
 // MARK: - Color Palette
@@ -20,6 +22,16 @@ extension Color {
     static let tableWarm   = Color(red: 0.94, green: 0.89, blue: 0.78)  // unchanged
     static let inkColor    = Color(red: 0.14, green: 0.18, blue: 0.26)  // unchanged
     static let inkLight    = Color(red: 0.38, green: 0.43, blue: 0.54)  // unchanged
+    
+    
+    static let skyBrightShadow  = Color(red: 0.17, green: 0.42, blue: 0.66)
+    static let gardenGreenShadow = Color(red: 0.16, green: 0.45, blue: 0.32)  
+    static let sunYellowShadow  = Color(red: 0.70, green: 0.56, blue: 0.08)
+    static let peachShadow      = Color(red: 0.68, green: 0.42, blue: 0.28)
+    static let lavenderShadow   = Color(red: 0.46, green: 0.36, blue: 0.64)
+    static let paperCreamShadow = Color(red: 0.76, green: 0.72, blue: 0.62)
+    static let coralShadow = Color(red: 0.62, green: 0.26, blue: 0.24)
+    
 }
 
 // MARK: - Envelope Palette (6 hopeful colors)
@@ -27,21 +39,29 @@ struct EnvelopePalette {
     struct Entry {
         let main: Color
         let light: Color
+        let shadow: Color
         let name: String
     }
-
+    
     static let all: [Entry] = [
-        Entry(main: .skyBright,   light: .skyLight,                              name: "Sky"),
-        Entry(main: .gardenGreen, light: .mintFresh,                             name: "Sage"),
-        Entry(main: .peach,       light: Color(red:1.00, green:0.88, blue:0.82), name: "Peach"),
-        Entry(main: .lavender,    light: .lilac,                                 name: "Lilac"),
-        Entry(main: .sunYellow,   light: Color(red:1.00, green:0.96, blue:0.72), name: "Sunny"),
-        Entry(main: .coral,       light: Color(red:1.00, green:0.78, blue:0.76), name: "Coral"),
+        Entry(main: .skyBright,   light: .skyLight,
+                      shadow: .skyBrightShadow,                                         name: "Sky"),
+                Entry(main: .gardenGreen, light: .mintFresh,
+                      shadow: .gardenGreenShadow,                                       name: "Sage"),
+                Entry(main: .peach,       light: Color(red:1.00, green:0.88, blue:0.82),
+                      shadow: .peachShadow,                                             name: "Peach"),
+                Entry(main: .lavender,    light: .lilac,
+                      shadow: .lavenderShadow,                                          name: "Lilac"),
+                Entry(main: .sunYellow,   light: Color(red:1.00, green:0.96, blue:0.72),
+                      shadow: .sunYellowShadow,                                         name: "Sunny"),
+                Entry(main: .coral,       light: Color(red:1.00, green:0.78, blue:0.76),
+                      shadow: .coralShadow, name: "Coral")
     ]
-
-    static func main(_ i: Int)  -> Color  { all[i % all.count].main }
-    static func light(_ i: Int) -> Color  { all[i % all.count].light }
-    static func name(_ i: Int)  -> String { all[i % all.count].name }
+    
+    static func main(_ i: Int)   -> Color  { all[i % all.count].main }
+        static func light(_ i: Int)  -> Color  { all[i % all.count].light }
+        static func shadow(_ i: Int) -> Color  { all[i % all.count].shadow }
+        static func name(_ i: Int)   -> String { all[i % all.count].name }
 }
 
 // MARK: - Finch-style Button
@@ -136,28 +156,24 @@ struct TableBackground: View {
         .ignoresSafeArea()
     }
 }
-
 // MARK: - Wax Seal
 struct WaxSeal: View {
-    var color: Color
+    var mainColor: Color
+    var lightColor: Color
     var size: CGFloat = 32
 
     var body: some View {
         ZStack {
-            Circle()
-                .fill(color)
-                .frame(width: size, height: size)
-                .shadow(color: color.opacity(0.45), radius: 4, y: 2)
-            ForEach(0..<8, id: \.self) { i in
-                Rectangle()
-                    .fill(Color.white.opacity(0.18))
-                    .frame(width: size * 0.55, height: 1.2)
-                    .rotationEffect(.degrees(Double(i) * 22.5))
-            }
-            Text("✦")
-                .font(.system(size: size * 0.38))
-                .foregroundColor(.white.opacity(0.85))
+            Image(systemName: "heart.fill")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .foregroundStyle(Color.coral)
+                .frame(width: 20, height: 20)
+                .offset(x: 0, y: 15)
+                
+                
         }
+        
     }
 }
 

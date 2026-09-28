@@ -2,10 +2,9 @@ import SwiftUI
 import SwiftData
 
 @main
-struct FeixiangApp: App {
+struct DearDuckyApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([Letter.self])
-        // Using migration policy to handle the new `title` and `envelopeColorIndex` fields
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])
@@ -16,7 +15,7 @@ struct FeixiangApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            MainView()
         }
         .modelContainer(sharedModelContainer)
     }
